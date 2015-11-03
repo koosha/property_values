@@ -1,0 +1,16 @@
+postallist=$(cat PostalList.txt)
+printf "Starting Getting Actual Data...\n\n"
+run1()
+{
+. ./$POSTALCODE/settings.bsh
+for (( i = 1; i <= NRESULTS; i++ )); do
+	printf "\n  Working on result: ${i}\n"
+	curl -s ${URL[$i]} > ./$POSTALCODE/Pages/Page${i}.txt
+done
+}
+for POSTALCODE in $postallist; do
+	mkdir -p ./$POSTALCODE/Pages/
+	printf "\nWorking on prefix: $POSTALCODE\n"
+	run1
+	printf "\nFinished gathering information for prefix $POSTALCODE!\n\n"
+done

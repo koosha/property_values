@@ -1,0 +1,22 @@
+OUT_DIR="./AllDataCSV/"
+mkdir -p ${OUT_DIR}
+postallist=$(cat PostalList.txt)
+run1()
+{
+grep ">Essential Information" $FILENAME > out.tmp
+egrep -o 'class="keyval"><strong>[^<]+</strong><span>[^<]+' out.tmp | sed 's/.*class="keyval"><strong>\([^<]*\).*<span>\(.*\).*/"\1","\2"/g' > ${OUT_DIR}$count.csv
+sed 's/.*\/e[0-9]*-\([0-9a-zA-Z-]*\)\/.*/"Address","\1"/g' out.tmp >> ${OUT_DIR}$count.csv
+}
+printf "Converting data to CSV:\n\n"
+count=0
+for POSTALCODE in $postallist; do
+	printf "\nWorking on prefix: $POSTALCODE\n"
+	. ./$POSTALCODE/Settings.bsh
+	for (( i = 1; i <= NRESULTS; i++ )); do
+		let count=$count+1
+		FILENAME="./$POSTALCODE/Pages/Page${i}.txt"
+		run1
+	done
+	printf "Data processed up to now: $count\n"
+	printf "\nFinished gathering information for prefix $POSTALCODE!\n\n"
+done

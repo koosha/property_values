@@ -1,0 +1,55 @@
+run1()
+{
+printf "\n  Getting information from first page of search result...\n"
+mkdir -p ./$POSTALCODE/
+#
+# Get initial results
+#
+printf "#\n# Settings for Postal Code $POSTALCODE\n#\n\n" > ./$POSTALCODE/settings.bsh
+URL="https://www.edmontonrealestate.pro/idx/search.html?refine=true&sortorder=DESC-ListingPrice&map%5Blongitude%5D=0&map%5Blatitude%5D=0&map%5Bzoom%5D=0&map%5Bpolygon%5D=&map%5Bradius%5D=&search_city%5B0%5D=Edmonton&search_subdivision=&search_zip=$POSTALCODE&search_mls=&search_address=&search_condoname=&idx=ereb&minimum_price=&maximum_price=&minimum_bedrooms=&minimum_bathrooms=&minimum_bathrooms_half=&minimum_bathrooms_full=&minimum_sqft=&maximum_sqft=&minimum_year=&maximum_year=&school_elementary=&school_middle=&school_high=&p=1"
+curl -s $URL > firstresult.dat
+sed '/<span class="summary"><em>\([0-9]*\)/!d' firstresult.dat > targetstring1.txt
+sed 's/.*<em>\([0-9]*\).*of \([0-9]*\).*/NRESULTS=\1; NPAGES=\2/g' targetstring1.txt > temp.bsh
+. ./temp.bsh
+if [[ $NRESULTS -gt 500 ]]; then
+	NRESULTS=500
+fi
+echo "NRESULTS=$NRESULTS" >> ./$POSTALCODE/settings.bsh
+echo "NPAGES=$NPAGES" >> ./$POSTALCODE/settings.bsh
+#
+# Lines with listings results
+#
+linelist=$(sed -n '/.*<article class="listing  [a-z ]*" id="listing-\([A-Z][0-9]*\).*/=' firstresult.dat)
+count=0
+for i in $linelist; do
+	let count=$count+1
+	id=$(sed $i'!d' firstresult.dat | sed 's/.*id="listing-\([A-Z][0-9]*\).*/\1/g')
+	let j=$i+4
+	URL=$(sed $j'!d' firstresult.dat | sed 's/.*<a href="\([^"]*\).*/\1/g')
+	echo "id[$count]=$id" >> ./$POSTALCODE/settings.bsh
+	echo "URL[$count]=$URL" >> ./$POSTALCODE/settings.bsh
+done
+printf "  $NPAGES found. Getting information from these pages...\n"
+if [[ $NPAGES -gt 1 ]]; then
+	for (( PAGE = 2; PAGE <= NPAGES; PAGE++ )); do
+		printf "    Working on page: $PAGE\n"
+		URL="https://www.edmontonrealestate.pro/idx/search.html?refine=true&sortorder=DESC-ListingPrice&map%5Blongitude%5D=0&map%5Blatitude%5D=0&map%5Bzoom%5D=0&map%5Bpolygon%5D=&map%5Bradius%5D=&search_city%5B0%5D=Edmonton&search_subdivision=&search_zip=$POSTALCODE&search_mls=&search_address=&search_condoname=&idx=ereb&minimum_price=&maximum_price=&minimum_bedrooms=&minimum_bathrooms=&minimum_bathrooms_half=&minimum_bathrooms_full=&minimum_sqft=&maximum_sqft=&minimum_year=&maximum_year=&school_elementary=&school_middle=&school_high=&p=${PAGE}"
+		curl -s $URL > firstresult.dat
+		linelist=$(sed -n '/.*<article class="listing  [a-z ]*" id="listing-\([A-Z][0-9]*\).*/=' firstresult.dat)
+		for i in $linelist; do
+			let count=$count+1
+			id=$(sed $i'!d' firstresult.dat | sed 's/.*id="listing-\([A-Z][0-9]*\).*/\1/g')
+			let j=$i+4
+			URL=$(sed $j'!d' firstresult.dat | sed 's/.*<a href="\([^"]*\).*/\1/g')
+			echo "id[$count]=$id" >> ./$POSTALCODE/settings.bsh
+			echo "URL[$count]=$URL" >> ./$POSTALCODE/settings.bsh
+		done
+	done
+fi
+printf "\nFinished gathering information for prefix $POSTALCODE!\n\n"
+}
+postallist=$(cat PostalList.txt)
+for POSTALCODE in $postallist; do
+	printf "\nWorking on prefix: $POSTALCODE\n"
+	run1
+done
