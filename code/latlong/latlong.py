@@ -1,11 +1,6 @@
 # Author/source: Koosha Golmohammadi
 
-#-------------------------------------------------------------------------------
-# Takes a list of addresses (one per line) from an input file, 
-#          geocodes them, and writes them to the specified output file.
-# input: inputfile.txt 
-# output: outputfile.csv
-#-------------------------------------------------------------------------------
+# Convert a list of addresses from an input file to geocodes 
 
 import sys
 
